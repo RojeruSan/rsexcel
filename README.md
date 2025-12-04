@@ -53,21 +53,8 @@ const excel = new RSExcel({
 });
 
 excel
-  .addSheet('Usuarios', users, {
-    headerStyle: {
-      font: { bold: true, color: '#FFFFFF' },
-      fill: '#2C3E50'
-    },
-    styles: {
-      'B2': { font: { color: '#E74C3C', bold: true } }
-    }
-  })
-  .addSheet('Productos', products, {
-    headerStyle: {
-      font: { bold: true, color: '#27AE60' },
-      fill: '#F8F9FA'
-    }
-  })
+  .addSheet('Usuarios', users)
+  .addSheet('Productos', products)
   .download('reporte.xlsx');
 ```
 ## 🛠️ API
@@ -91,23 +78,12 @@ styles: objeto con estilos por celda ('A1', 'B2', etc.) o por rangos
 
 Genera y descarga el archivo Excel.
 ```
-## 🎨 Estilos soportados
+## 🎨 Auto ajustable y filtros
 ```text
-{
-  fill: '#FF5733', // color de fondo (hex)
-  font: {
-    bold: true,
-    italic: false,
-    color: '#FFFFFF',
-    name: 'Arial',
-    sz: 12
-  },
-  alignment: {
-    horizontal: 'center',
-    vertical: 'middle',
-    wrapText: true
-  }
-}
+RSExcel.exportToExcel(aoa, filename, sheetName, {
+   autoFit: true,
+   enableFilters: true
+});
 ```
 ## ⚖️ Licencia
 ```text
