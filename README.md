@@ -4,13 +4,13 @@
 ![Version](https://img.shields.io/npm/v/rs-excel)
 ![Size](https://img.shields.io/bundlephobia/minzip/rs-excel)
 
-**RSExcel** es una librería ligera y autónoma para exportar datos a **Excel (.xlsx)** directamente desde el navegador, con soporte completo para:
+**RSExcel** es una librería ligera para exportar datos a **Excel (.xlsx)** desde el navegador, con soporte para:
 
-- ✅ **Múltiples hojas**
 - ✅ **Filtros automáticos**
 - ✅ **Autoajuste de columnas**
-- ✅ **Sin dependencias externas en runtime** (todo incluido en un solo archivo)
-- ✅ **Licencia MIT**
+- ✅ **Múltiples hojas**
+- ✅ **Sin dependencias externas en runtime** (todo en un solo archivo)
+- ✅ **100% compatible con la versión gratuita de SheetJS**
 
 Ideal para aplicaciones web que requieren reportes profesionales con formato avanzado.
 
@@ -33,27 +33,25 @@ o
 import RSExcel from 'rs.excel.min';
 ```
 ## 🧪 Ejemplo de uso
+▶️ Una sola hoja (simple)
 ```javascript
-const users = [
-  ['Nombre', 'Edad', 'Ciudad'],
-  ['Ana', 28, 'Madrid'],
-  ['Luis', 34, 'Barcelona']
-];
+RSExcel.exportToExcel(
+    [['Nombre', 'Edad'], ['Ana', 28]],
+    'usuarios.xlsx',
+    'Hoja1'
+);
+```
+▶️ Múltiples hojas (avanzado)
+```javascript
+const libro = new RSExcel.Workbook();
 
-const products = [
-  ['Producto', 'Precio'],
-  ['Laptop', 1200],
-  ['Mouse', 25]
-];
-
-const excel = new RSExcel({
-  autoFit: true,
-  enableFilters: true
-});
-
-excel
-  .addSheet('Usuarios', users)
-  .addSheet('Productos', products)
+libro
+  .addSheet('Usuarios', [['Nombre', 'Edad'], ['Ana', 28]], {
+    headerStyle: { font: { bold: true, color: '#FFFFFF' }, fill: '#2C3E50' }
+  })
+  .addSheet('Productos', [['Producto', 'Precio'], ['Laptop', 1200]], {
+    headerStyle: { font: { bold: true }, fill: '#3498DB' }
+  })
   .download('reporte.xlsx');
 ```
 ## 🎨 Auto ajustable y filtros
@@ -62,6 +60,11 @@ RSExcel.exportToExcel(data, filename, sheetName, {
    autoFit: true,
    enableFilters: true
 });
+```
+## ⚠️ Notas importantes
+```text
+Basado en SheetJS xlsx@0.18.5 (versión gratuita, Apache 2.0).
+No requiere internet en runtime.
 ```
 ## ⚖️ Licencia
 ```text

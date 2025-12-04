@@ -18,13 +18,9 @@ function encodeCellRef(r, c) {
     return XLSX.utils.encode_cell({ r, c });
 }
 
-// ✅ Descarga manual que respeta estilos
 function downloadWorkbook(wb, filename) {
-    // Usar write con bookType: 'xlsx' y type: 'array'
     const uint8Array = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
     const blob = new Blob([uint8Array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-    // Descargar
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -37,87 +33,98 @@ function downloadWorkbook(wb, filename) {
     }, 0);
 }
 
-function exportToExcel(aoa, filename = 'archivo.xlsx', sheetName = 'Hoja1', options = {}) {
-    if (!Array.isArray(aoa) || aoa.length === 0) {
-        throw new Error('RSExcel: datos inválidos');
+// ✅ Clase para múltiples hojas y control total
+export class RSExcelWorkbook {
+    constructor(options = {}) {
+        this.workbook = XLSX.utils.book_new();
+        this.defaultAutoFit = options.autoFit ?? true;
+        this.defaultEnableFilters = options.enableFilters ?? true;
     }
 
-    const autoFit = options.autoFit ?? true;
-    const enableFilters = options.enableFilters ?? true;
-    const userHeaderStyle = options.headerStyle || {};
+    addSheet(name, aoa, options = {}) {
+        if (!Array.isArray(aoa) || aoa.length === 0) {
+            throw new Error('RSExcel: datos inválidos');
+        }
 
-    const ws = {};
-    XLSX.utils.sheet_add_aoa(ws, aoa, { origin: 'A1' });
+        const ws = {};
+        XLSX.utils.sheet_add_aoa(ws, aoa, { origin: 'A1' });
 
-    const rowCount = aoa.length;
-    const colCount = aoa[0]?.length || 0;
+        const autoFit = options.autoFit ?? this.defaultAutoFit;
+        const enableFilters = options.enableFilters ?? this.defaultEnableFilters;
+        const userHeaderStyle = options.headerStyle || {};
+        const userCellStyles = options.cellStyles || {};
 
-    // Aplicar estilos al encabezado
-    if (rowCount > 0 && Object.keys(userHeaderStyle).length > 0) {
-        const headerStyle = {};
+        const rowCount = aoa.length;
+        const colCount = aoa[0]?.length || 0;
 
-        if (userHeaderStyle.font) {
-            headerStyle.font = { ...userHeaderStyle.font };
-            if (userHeaderStyle.font.color) {
-                headerStyle.font.color = toRgbColor(userHeaderStyle.font.color);
+        // Estilos de encabezado
+        if (rowCount > 0 && Object.keys(userHeaderStyle).length > 0) {
+            const headerStyle = this._buildStyle(userHeaderStyle);
+            for (let c = 0; c < colCount; c++) {
+                const ref = encodeCellRef(0, c);
+                if (ws[ref]) ws[ref].s = headerStyle;
             }
         }
 
-        if (userHeaderStyle.fill) {
-            const rgb = toRgbColor(userHeaderStyle.fill);
-            headerStyle.fill = {
-                fgColor: rgb,
-                bgColor: rgb,
-                patternType: 'solid'
+        // Estilos por celda (ej: { 'B2': { fill: '#FF0000' } })
+        for (const [addr, style] of Object.entries(userCellStyles)) {
+            if (ws[addr]) {
+                ws[addr].s = this._buildStyle(style);
+            }
+        }
+
+        // Autoajuste
+        if (autoFit && colCount > 0) {
+            const colWidths = [];
+            for (let c = 0; c < colCount; c++) {
+                const maxWidth = Math.max(...aoa.map(row => String(row[c] || '').length), 10);
+                colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+            }
+            ws['!cols'] = colWidths;
+        }
+
+        // Filtros
+        if (enableFilters && rowCount > 0) {
+            ws['!autofilter'] = {
+                ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } })
             };
         }
 
-        for (let c = 0; c < colCount; c++) {
-            const ref = encodeCellRef(0, c);
-            if (ws[ref]) {
-                ws[ref].s = headerStyle;
-            }
+        ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rowCount - 1, c: colCount - 1 } });
+        XLSX.utils.book_append_sheet(this.workbook, ws, name.substring(0, 31));
+        return this;
+    }
+
+    _buildStyle(style) {
+        const out = {};
+        if (style.font) {
+            out.font = { ...style.font };
+            if (style.font.color) out.font.color = toRgbColor(style.font.color);
         }
-    }
-
-    // Autoajuste
-    if (autoFit && colCount > 0) {
-        const colWidths = [];
-        for (let c = 0; c < colCount; c++) {
-            const maxWidth = Math.max(
-                ...aoa.map(row => String(row[c] || '').length),
-                10
-            );
-            colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+        if (style.fill) {
+            const rgb = toRgbColor(style.fill);
+            out.fill = { fgColor: rgb, bgColor: rgb, patternType: 'solid' };
         }
-        ws['!cols'] = colWidths;
+        if (style.alignment) out.alignment = { ...style.alignment };
+        return out;
     }
 
-    // Filtros
-    if (enableFilters && rowCount > 0) {
-        ws['!autofilter'] = {
-            ref: XLSX.utils.encode_range({
-                s: { r: 0, c: 0 },
-                e: { r: 0, c: colCount - 1 }
-            })
-        };
+    download(filename = 'workbook.xlsx') {
+        if (!filename.toLowerCase().endsWith('.xlsx')) filename += '.xlsx';
+        downloadWorkbook(this.workbook, filename);
     }
-
-    ws['!ref'] = XLSX.utils.encode_range({
-        s: { r: 0, c: 0 },
-        e: { r: rowCount - 1, c: colCount - 1 }
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-
-    if (!filename.toLowerCase().endsWith('.xlsx')) {
-        filename += '.xlsx';
-    }
-
-    // ✅ Usar descarga manual (respeta estilos)
-    downloadWorkbook(wb, filename);
 }
 
-const RSExcel = { exportToExcel };
+// ✅ Función simple para una sola hoja
+export function exportToExcel(aoa, filename = 'archivo.xlsx', sheetName = 'Hoja1', options = {}) {
+    const wb = new RSExcelWorkbook(options);
+    wb.addSheet(sheetName, aoa, options).download(filename);
+}
+
+// ✅ API pública
+const RSExcel = {
+    exportToExcel,
+    Workbook: RSExcelWorkbook
+};
+
 export default RSExcel;

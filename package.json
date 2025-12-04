@@ -1,6 +1,6 @@
 {
   "name": "rs-excel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Librería ligera para exportar datos a Excel (.xlsx) con estilos, filtros, autoajuste y múltiples hojas. Sin dependencias externas en runtime.",
   "keywords": [
     "excel",
