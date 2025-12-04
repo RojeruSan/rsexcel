@@ -7,7 +7,6 @@
 **RSExcel** es una librería ligera y autónoma para exportar datos a **Excel (.xlsx)** directamente desde el navegador, con soporte completo para:
 
 - ✅ **Múltiples hojas**
-- ✅ **Estilos personalizados** (color de fondo, color de texto, negrita, alineación)
 - ✅ **Filtros automáticos**
 - ✅ **Autoajuste de columnas**
 - ✅ **Sin dependencias externas en runtime** (todo incluido en un solo archivo)
