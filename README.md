@@ -57,27 +57,6 @@ excel
   .addSheet('Productos', products)
   .download('reporte.xlsx');
 ```
-## 🛠️ API
-```text
-new RSExcel(options)
-
-options.autoFit (boolean, default: true)
-options.enableFilters (boolean, default: true)
-
-.addSheet(name, data, options)
-
-name: nombre de la hoja (máx. 31 caracteres)
-data: array 2D ([['A1','B1'], ['A2','B2']])
-options:
-autoFit: sobrescribe la configuración global
-enableFilters: sobrescribe la configuración global
-headerStyle: estilo aplicado a la fila 0
-styles: objeto con estilos por celda ('A1', 'B2', etc.) o por rangos
-
-.download(filename)
-
-Genera y descarga el archivo Excel.
-```
 ## 🎨 Auto ajustable y filtros
 ```text
 RSExcel.exportToExcel(aoa, filename, sheetName, {
