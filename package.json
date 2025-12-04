@@ -1,6 +1,6 @@
 {
   "name": "rs-excel",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Librería ligera para exportar datos a Excel (.xlsx) con estilos, filtros, autoajuste y múltiples hojas. Sin dependencias externas en runtime.",
   "keywords": [
     "excel",
@@ -12,17 +12,17 @@
     "browser",
     "mit"
   ],
-  "homepage": "https://github.com/RojeruSan/rs-excel",
+  "homepage": "https://github.com/RojeruSan/rsexcel",
   "bugs": {
-    "url": "https://github.com/RojeruSan/rs-excel/issues"
+    "url": "https://github.com/RojeruSan/rsexcel/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RojeruSan/rs-excel.git"
+    "url": "git+https://github.com/RojeruSan/rsexcel.git"
   },
   "license": "MIT",
   "author": "Rogelio Urieta Camacho (RojeruSan)",
-  "main": "dist/rs-excel.js",
+  "main": "dist/rs.excel.min.js",
   "module": "src/RSExcel.js",
   "scripts": {
     "build": "node build.js"
