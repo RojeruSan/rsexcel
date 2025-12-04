@@ -59,7 +59,7 @@ excel
 ```
 ## 🎨 Auto ajustable y filtros
 ```text
-RSExcel.exportToExcel(aoa, filename, sheetName, {
+RSExcel.exportToExcel(data, filename, sheetName, {
    autoFit: true,
    enableFilters: true
 });
