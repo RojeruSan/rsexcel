@@ -5,7 +5,7 @@
 ![Size](https://img.shields.io/bundlephobia/minzip/rs-excel)
 
 **RSExcel** es una librería ligera para exportar datos a **Excel (.xlsx)** desde el navegador, con soporte para:
-[![Donar](https://img.shields.io/badge/Donar-PayPal-00457C?logo=paypal&style=for-the-badge)](https://www.paypal.com/donate/?cmd=_s-xclick&hosted_button_id=JLWEAETTE3H28&ssrt=1764941769118)
+
 - ✅ **Formato de celdas (fechas, moneda, porcentajes)**
 - ✅ **Números de fila y totales**
 - ✅ **Exportar desde una tabla HTML**
@@ -107,3 +107,5 @@ SheetJS (xlsx): incluido bajo Apache License 2.0
 Rogelio Urieta Camacho (RojeruSan)
 Hecho con ❤️ para desarrolladores que aman el control total sobre sus exportaciones.
 ```
+## ❤️ Donaciones
+[![Donar](https://img.shields.io/badge/Donar-PayPal-00457C?logo=paypal&style=for-the-badge)](https://www.paypal.com/donate/?cmd=_s-xclick&hosted_button_id=JLWEAETTE3H28&ssrt=1764941769118)
