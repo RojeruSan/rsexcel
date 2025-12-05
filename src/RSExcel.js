@@ -1,22 +1,8 @@
 // src/RSExcel.js
 // RSExcel - Advanced Excel export with full styling support
 // MIT License © Rogelio Urieta Camacho (RojeruSan)
-
+// src/RSExcel.js
 import * as XLSX from 'xlsx';
-
-function toRgbColor(color) {
-    if (!color) return undefined;
-    if (typeof color === 'object' && color.rgb) return color;
-    let hex = color.replace(/^#/, '');
-    if (hex.length === 3) {
-        hex = hex.split('').map(c => c + c).join('');
-    }
-    return { rgb: hex.toUpperCase() };
-}
-
-function encodeCellRef(r, c) {
-    return XLSX.utils.encode_cell({ r, c });
-}
 
 function downloadWorkbook(wb, filename) {
     const uint8Array = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
@@ -33,7 +19,35 @@ function downloadWorkbook(wb, filename) {
     }, 0);
 }
 
-// ✅ Clase para múltiples hojas y control total
+// ✅ Extraer datos de una tabla HTML
+function tableToAoa(table) {
+    if (typeof table === 'string') {
+        table = document.querySelector(table);
+    }
+    if (!table || table.tagName !== 'TABLE') {
+        throw new Error('RSExcel: se requiere un elemento <table> válido');
+    }
+
+    const aoa = [];
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const rowData = [];
+        cells.forEach(cell => {
+            // Obtener texto (ignorar HTML interno)
+            let text = cell.textContent || cell.innerText || '';
+            // Eliminar espacios redundantes
+            text = text.replace(/\s+/g, ' ').trim();
+            rowData.push(text);
+        });
+        aoa.push(rowData);
+    });
+
+    return aoa;
+}
+
+// ✅ Clase principal
 export class RSExcelWorkbook {
     constructor(options = {}) {
         this.workbook = XLSX.utils.book_new();
@@ -41,50 +55,67 @@ export class RSExcelWorkbook {
         this.defaultEnableFilters = options.enableFilters ?? true;
     }
 
-    addSheet(name, aoa, options = {}) {
-        if (!Array.isArray(aoa) || aoa.length === 0) {
-            throw new Error('RSExcel: datos inválidos');
+    // ✅ Añadir hoja desde datos estructurados
+    addSheet(name, data, columns = [], options = {}) {
+        if (!Array.isArray(data)) {
+            throw new Error('RSExcel: data must be an array');
         }
-
-        const ws = {};
-        XLSX.utils.sheet_add_aoa(ws, aoa, { origin: 'A1' });
 
         const autoFit = options.autoFit ?? this.defaultAutoFit;
         const enableFilters = options.enableFilters ?? this.defaultEnableFilters;
-        const userHeaderStyle = options.headerStyle || {};
-        const userCellStyles = options.cellStyles || {};
+        const exportWithRowNumbers = options.exportWithRowNumbers ?? false;
+        const rowNumberText = options.rowNumberText || 'N°';
+        const summary = options.summary;
 
-        const rowCount = aoa.length;
+        const headers = columns.map(col => col.title || col.name || col.key);
+        if (exportWithRowNumbers) headers.unshift(rowNumberText);
+
+        const rows = data.map((row, idx) => {
+            let rowData = columns.map(col => String(row[col.key] ?? ''));
+            if (exportWithRowNumbers) rowData.unshift(idx + 1);
+            return rowData;
+        });
+
+        if (summary && Array.isArray(summary.values)) {
+            const summaryRow = [summary.label || 'Total', ...summary.values];
+            if (!exportWithRowNumbers) summaryRow.shift(); // quitar label si no hay N°
+            rows.push(summaryRow);
+        }
+
+        this._addSheetFromAoa(name, [headers, ...rows], { autoFit, enableFilters });
+        return this;
+    }
+
+    // ✅ Añadir hoja desde una tabla HTML (cadena de selector o elemento)
+    addSheetFromTable(name, tableSelector, options = {}) {
+        const aoa = tableToAoa(tableSelector);
+        const autoFit = options.autoFit ?? this.defaultAutoFit;
+        const enableFilters = options.enableFilters ?? this.defaultEnableFilters;
+        this._addSheetFromAoa(name, aoa, { autoFit, enableFilters });
+        return this;
+    }
+
+    // ✅ Lógica interna para crear hoja desde aoa
+    _addSheetFromAoa(name, aoa, options) {
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
         const colCount = aoa[0]?.length || 0;
-
-        // Estilos de encabezado
-        if (rowCount > 0 && Object.keys(userHeaderStyle).length > 0) {
-            const headerStyle = this._buildStyle(userHeaderStyle);
-            for (let c = 0; c < colCount; c++) {
-                const ref = encodeCellRef(0, c);
-                if (ws[ref]) ws[ref].s = headerStyle;
-            }
-        }
-
-        // Estilos por celda (ej: { 'B2': { fill: '#FF0000' } })
-        for (const [addr, style] of Object.entries(userCellStyles)) {
-            if (ws[addr]) {
-                ws[addr].s = this._buildStyle(style);
-            }
-        }
+        const rowCount = aoa.length;
 
         // Autoajuste
-        if (autoFit && colCount > 0) {
+        if (options.autoFit && colCount > 0) {
             const colWidths = [];
             for (let c = 0; c < colCount; c++) {
-                const maxWidth = Math.max(...aoa.map(row => String(row[c] || '').length), 10);
+                const maxWidth = Math.max(
+                    ...aoa.map(row => String(row[c] || '').length),
+                    10
+                );
                 colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
             }
             ws['!cols'] = colWidths;
         }
 
         // Filtros
-        if (enableFilters && rowCount > 0) {
+        if (options.enableFilters && rowCount > 0) {
             ws['!autofilter'] = {
                 ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } })
             };
@@ -92,21 +123,6 @@ export class RSExcelWorkbook {
 
         ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rowCount - 1, c: colCount - 1 } });
         XLSX.utils.book_append_sheet(this.workbook, ws, name.substring(0, 31));
-        return this;
-    }
-
-    _buildStyle(style) {
-        const out = {};
-        if (style.font) {
-            out.font = { ...style.font };
-            if (style.font.color) out.font.color = toRgbColor(style.font.color);
-        }
-        if (style.fill) {
-            const rgb = toRgbColor(style.fill);
-            out.fill = { fgColor: rgb, bgColor: rgb, patternType: 'solid' };
-        }
-        if (style.alignment) out.alignment = { ...style.alignment };
-        return out;
     }
 
     download(filename = 'workbook.xlsx') {
@@ -115,15 +131,21 @@ export class RSExcelWorkbook {
     }
 }
 
-// ✅ Función simple para una sola hoja
-export function exportToExcel(aoa, filename = 'archivo.xlsx', sheetName = 'Hoja1', options = {}) {
+// ✅ Atajos
+export function exportToExcel(data, columns, filename, sheetName, options) {
     const wb = new RSExcelWorkbook(options);
-    wb.addSheet(sheetName, aoa, options).download(filename);
+    wb.addSheet(sheetName, data, columns, options).download(filename);
+}
+
+export function exportTableToExcel(tableSelector, filename = 'tabla.xlsx', sheetName = 'Hoja1', options = {}) {
+    const wb = new RSExcelWorkbook(options);
+    wb.addSheetFromTable(sheetName, tableSelector, options).download(filename);
 }
 
 // ✅ API pública
 const RSExcel = {
     exportToExcel,
+    exportTableToExcel,
     Workbook: RSExcelWorkbook
 };
 
